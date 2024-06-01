@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "install-python-deps": "pip install --target /python_scripts -r requirements.txt",
     "build": "npm install && npm run install-python-deps"

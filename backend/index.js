@@ -161,15 +161,19 @@ app.post("/publish", async (req, res) => {
   }
 });
 
-app.get("/fetch", async (req, res) => {
+const fetchData = async () => {
   try {
     let url = `https://uniswapv2.powerloom.io/api/last_finalized_epoch/aggregate_24h_stats_lite:9fb408548a732c85604dacb9c956ffc2538a3b895250741593da630d994b1f27:UNISWAPV2`;
 
-    //   get using axios
     const res = await axios.get(url);
     console.log(res.data);
-  } catch (error) {}
-});
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+// Schedule the task to run every 5 minutes
+cron.schedule("*/5 * * * *", fetchData);
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
