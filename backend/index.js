@@ -3,6 +3,8 @@ const axios = require("axios");
 const fs = require("fs");
 const express = require("express");
 const cron = require("node-cron");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const lighthouse = require("@lighthouse-web3/sdk");
 
@@ -89,11 +91,15 @@ app.get("/getTokenPrice", async (req, res) => {
   res.send(tokenPrice);
 });
 
-app.get("/initializeProject", async (req, res) => {
+app.post("/initializeProject", async (req, res) => {
   // create a ipns record for the project
   // return back the ipns record name to the user
   try {
-    const keyResponse = await lighthouse.generateKey(apiKey);
+    console.log("Generating key", process.env.LIGHTHOUSE_API_KEY);
+    const keyResponse = await lighthouse.generateKey(
+      process.env.LIGHTHOUSE_API_KEY
+    );
+
     const ipnsName = keyResponse.data.ipnsId;
 
     const pythonScriptContent = ``;
@@ -110,7 +116,8 @@ app.get("/initializeProject", async (req, res) => {
 
     return res.status(200).json({ ipnsName: ipnsName });
   } catch (error) {
-    return res.status(404).json({ error: error });
+    console.log(error);
+    return res.status(404).send(error);
   }
 });
 
@@ -174,7 +181,7 @@ const fetchData = async () => {
 };
 
 // Schedule the task to run every 5 minutes
-cron.schedule("*/5 * * * *", fetchData);
+// cron.schedule("*/5 * * * *", fetchData);
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
