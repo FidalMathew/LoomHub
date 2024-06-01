@@ -3,6 +3,8 @@ const axios = require("axios");
 const fs = require("fs");
 const express = require("express");
 
+const lighthouse = require("@lighthouse-web3/sdk");
+
 const app = express();
 const port = process.env.PORT || 8000;
 
@@ -87,28 +89,76 @@ app.get("/getTokenPrice", async (req, res) => {
 });
 
 app.get("/initializeProject", async (req, res) => {
-  const pythonScriptContent = ``;
+  // create a ipns record for the project
+  // return back the ipns record name to the user
+  try {
+    const keyResponse = await lighthouse.generateKey(apiKey);
+    const ipnsName = keyResponse.data.ipnsId;
 
-  const pythonFilePath = "python_scripts/hello.py";
+    const pythonScriptContent = ``;
+    const pythonFilePath = `python_scripts/${ipnsName}.py`;
 
-  // Write the content to the Python file
-  fs.writeFile(pythonFilePath, pythonScriptContent, (err) => {
-    if (err) {
-      console.error("Error creating Python file:", err);
-    } else {
-      console.log("Python file created successfully!");
-    }
-  });
+    // Write the content to the Python file
+    fs.writeFile(pythonFilePath, pythonScriptContent, (err) => {
+      if (err) {
+        console.error("Error creating Python file:", err);
+      } else {
+        console.log("Python file created successfully!");
+      }
+    });
+
+    return res.status(200).json({ ipnsName: ipnsName });
+  } catch (error) {
+    return res.status(404).json({ error: error });
+  }
 });
 
 app.post("/runPythonScript", async (req, res) => {
-  // const pythonFilePath = "python_scripts/hello.py";
-  const pythonFilePath = req.query.pythonFilePath;
+  try {
+    const ipnsName = req.body.ipnsName;
+    const pythonFilePath = `python_scripts/${ipnsName}`;
 
-  PythonShell.run(pythonFilePath, null).then((messages) => {
-    console.log(messages, "finished");
-    res.send(messages);
-  });
+    const pythonScriptContent = req.body.pythonScriptContent;
+
+    fs.writeFile(pythonFilePath, pythonScriptContent, (err) => {
+      if (err) {
+        console.error("Error creating Python file:", err);
+      } else {
+        console.log("Python file created successfully!");
+      }
+    });
+
+    PythonShell.run(pythonFilePath, null).then((messages) => {
+      console.log(messages, "finished");
+      res.send(messages);
+    });
+  } catch (error) {
+    return res.status(404).json({ error: error });
+  }
+});
+
+app.post("/publish", async (req, res) => {
+  try {
+    const ipnsName = req.body.ipnsName;
+    const pythonFilePath = `python_scripts/${ipnsName}`;
+
+    const uploadResponse = await lighthouse.upload(
+      pythonFilePath,
+      process.env.LIGHTHOUSE_API_KEY
+    );
+
+    const ipfsHash = uploadResponse.data.Hash;
+
+    const pubResponse = await lighthouse.publishRecord(
+      ipfsHash, // replace with your IPFS hash
+      ipnsName,
+      process.env.LIGHTHOUSE_API_KEY
+    );
+
+    return res.status(200).json({ ipnsName: ipnsName });
+  } catch (error) {
+    return res.status(400).json({ error: error });
+  }
 });
 
 app.listen(port, () => {

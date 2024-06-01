@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install-python-deps": "pip install --target /python_scripts -r requirements.txt",
+    "build": "npm install && npm run install-python-deps"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +14,7 @@
   "dependencies": {
     "axios": "^1.7.2",
     "express": "^4.19.2",
+    "ipfs-http-client": "^50.1.2",
     "python-shell": "^5.0.0"
   }
 }
