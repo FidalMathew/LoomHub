@@ -4,11 +4,15 @@ const fs = require("fs");
 const express = require("express");
 const cron = require("node-cron");
 const dotenv = require("dotenv");
+const cors = require("cors");
+
+const app = express();
 dotenv.config();
+// init cors
+app.use(cors());
 
 const lighthouse = require("@lighthouse-web3/sdk");
 
-const app = express();
 const port = process.env.PORT || 8000;
 
 const getTokenDetailsLatest = async (symbol) => {
