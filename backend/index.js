@@ -231,6 +231,38 @@ app.get("/getFileContent", async (req, res) => {
   }
 });
 
+app.post("/forkProject", async (req, res) => {
+  // create a ipns record for the project
+  // return back the ipns record name to the user
+  try {
+    const pythonScriptContent = req.body.pythonScriptContent;
+
+    console.log("Generating key", process.env.LIGHTHOUSE_API_KEY);
+    const keyResponse = await lighthouse.generateKey(
+      process.env.LIGHTHOUSE_API_KEY
+    );
+
+    const ipnsName = keyResponse.data.ipnsId;
+
+    const pythonFilePath = `python_scripts/${ipnsName}.py`
+
+    // Write the content to the Python file
+    fs.writeFile(pythonFilePath, pythonScriptContent, (err) => {
+      if (err) {
+        console.error("Error creating Python file:", err);
+      } else {
+        console.log("Python file created successfully!");
+      }
+    });
+
+    return res.status(200).json({ ipnsName: ipnsName });
+  } catch (error) {
+    console.log(error);
+    return res.status(404).send(error);
+  }
+});
+
+
 const fetchData = async () => {
   try {
     let url = `https://uniswapv2.powerloom.io/api/last_finalized_epoch/aggregate_24h_stats_lite:9fb408548a732c85604dacb9c956ffc2538a3b895250741593da630d994b1f27:UNISWAPV2`;
