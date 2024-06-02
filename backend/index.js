@@ -40,6 +40,7 @@ const getTokenDetailsLatest = async (symbol) => {
 
       if (token.symbol === symbol) {
         console.log(token);
+        return token;
         break;
       }
     }
@@ -81,19 +82,31 @@ const getTokenPrice = async (num, symbol) => {
   }
 
   console.log(priceRecords, "price records");
+  return priceRecords;
 };
 
 app.get("/getTokenDetailsLatest", async (req, res) => {
-  const symbol = req.query.symbol;
-  const tokenDetails = await getTokenDetailsLatest(symbol);
-  res.send(tokenDetails);
+  try {
+    const symbol = req.query.symbol;
+    const tokenDetails = await getTokenDetailsLatest(symbol);
+    // res.send(tokenDetails);
+    res.status(200).json({ tokenDetails: tokenDetails });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error });
+  }
 });
 
 app.get("/getTokenPrice", async (req, res) => {
-  const num = req.query.num;
-  const symbol = req.query.symbol;
-  const tokenPrice = await getTokenPrice(num, symbol);
-  res.send(tokenPrice);
+  try {
+    const num = req.query.num;
+    const symbol = req.query.symbol;
+    const tokenPrice = await getTokenPrice(num, symbol);
+    res.status(200).json({ tokenPrice: tokenPrice });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error });
+  }
 });
 
 app.post("/initializeProject", async (req, res) => {
@@ -142,10 +155,15 @@ app.post("/runPythonScript", async (req, res) => {
       }
     });
 
-    PythonShell.run(pythonFilePath, null).then((messages) => {
-      console.log(messages, "finished");
-      res.send(messages);
-    });
+    PythonShell.run(pythonFilePath, null)
+      .then((messages) => {
+        console.log(messages, "finished");
+        return res.send(messages);
+      })
+      .catch((e) => {
+        console.error(e.message, e);
+        return res.send(e.message);
+      });
   } catch (error) {
     return res.status(404).json({ error: error });
   }

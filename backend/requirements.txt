@@ -1,2 +1,5 @@
 scikit-learn
 numpy
+requests
+pandas
+matplotlib
