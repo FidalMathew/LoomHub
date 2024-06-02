@@ -5,6 +5,7 @@ const express = require("express");
 const cron = require("node-cron");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 dotenv.config();
@@ -93,7 +94,7 @@ app.get("/getTokenDetailsLatest", async (req, res) => {
     res.status(200).json({ tokenDetails: tokenDetails });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: error });
+    res.status(500).json({ error: error + 'from token details' });
   }
 });
 
@@ -144,27 +145,62 @@ app.post("/runPythonScript", async (req, res) => {
     console.log("req-", req.body);
     const ipnsName = req.body.ipnsName;
     const pythonFilePath = `python_scripts/${ipnsName}.py`;
-
     const pythonScriptContent = req.body.pythonScriptContent;
+    const plotFilePath = path.join(__dirname, 'plot.png');
 
-    fs.writeFile(pythonFilePath, pythonScriptContent, (err) => {
-      if (err) {
-        console.error("Error creating Python file:", err);
-      } else {
-        console.log("Python file created successfully!");
-      }
-    });
+    // Write the Python script to the specified file
+    await fs.promises.writeFile(pythonFilePath, pythonScriptContent);
+    console.log("Python file created successfully!");
 
+    // Get the initial modification time of plot.png
+    let initialPlotModTime = null;
+    try {
+      const stats = await fs.promises.stat(plotFilePath);
+      initialPlotModTime = stats.mtime;
+    } catch (err) {
+      console.log("plot.png does not exist initially.");
+    }
+
+    // Run the Python script
     PythonShell.run(pythonFilePath, null)
-      .then((messages) => {
+      .then(async (messages) => {
         console.log(messages, "finished");
-        return res.send(messages);
+
+        // Check if plot.png has been modified
+        let plotModified = false;
+        try {
+          const stats = await fs.promises.stat(plotFilePath);
+          if (initialPlotModTime && stats.mtime > initialPlotModTime) {
+            plotModified = true;
+          } else if (!initialPlotModTime) {
+            plotModified = true;
+          }
+        } catch (err) {
+          console.log("Error checking plot.png:", err);
+        }
+
+        if (plotModified) {
+          // Read the plot.png file
+          fs.readFile(plotFilePath, (err, data) => {
+            if (err) {
+              console.error("Error reading plot.png:", err);
+              return res.send(messages);
+            }
+            const imgBase64 = Buffer.from(data).toString('base64');
+            const imgSrc = `data:image/png;base64,${imgBase64}`;
+            return res.send({ messages, imgSrc });
+          });
+        } else {
+          return res.send(messages);
+        }
       })
       .catch((e) => {
         console.error(e.message, e);
         return res.send(e.message);
       });
+
   } catch (error) {
+    console.error("Error:", error);
     return res.status(404).json({ error: error });
   }
 });

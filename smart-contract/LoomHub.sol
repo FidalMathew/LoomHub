@@ -7,6 +7,7 @@ contract LoomHub {
         address owner;
         string ipns;
         string name;
+        bool published;
     }
 
     address public admin;
@@ -54,12 +55,26 @@ contract LoomHub {
         mapId[msg.sender].push(id);
     }
 
+    function publishSheet(uint256 _id) public {
+        for (uint256 i = 0; i < workbook.length; i++) {
+            if (workbook[i].id == _id && workbook[i].owner == msg.sender) {
+                workbook[i].published = true;
+                return;
+            }
+        }
+        revert("Sheet not found or not owned by caller");
+    }
+
     function viewAllIds() public view returns (uint256[] memory) {
         return mapId[msg.sender];
     }
 
+    function currentId() public view returns (uint256) {
+        return nextId;
+    }
+
     function addIPNS(string memory name, string memory ipns) public {
-        workbook.push(Sheet(nextId, msg.sender, ipns, name));
+        workbook.push(Sheet(nextId, msg.sender, ipns, name, false));
         nextId++;
     }
 
@@ -105,6 +120,7 @@ contract LoomHub {
 
         revert("Sheet not found");
     }
+
     function getWorkbookCount() public view returns (uint256) {
         return workbook.length;
     }
