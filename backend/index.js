@@ -10,6 +10,7 @@ const app = express();
 dotenv.config();
 // init cors
 app.use(cors());
+app.use(express.json());
 
 const lighthouse = require("@lighthouse-web3/sdk");
 
@@ -127,8 +128,9 @@ app.post("/initializeProject", async (req, res) => {
 
 app.post("/runPythonScript", async (req, res) => {
   try {
+    console.log("req-", req.body);
     const ipnsName = req.body.ipnsName;
-    const pythonFilePath = `python_scripts/${ipnsName}`;
+    const pythonFilePath = `python_scripts/${ipnsName}.py`;
 
     const pythonScriptContent = req.body.pythonScriptContent;
 
@@ -152,7 +154,7 @@ app.post("/runPythonScript", async (req, res) => {
 app.post("/publish", async (req, res) => {
   try {
     const ipnsName = req.body.ipnsName;
-    const pythonFilePath = `python_scripts/${ipnsName}`;
+    const pythonFilePath = `python_scripts/${ipnsName}.py`;
 
     const uploadResponse = await lighthouse.upload(
       pythonFilePath,
@@ -167,8 +169,46 @@ app.post("/publish", async (req, res) => {
       process.env.LIGHTHOUSE_API_KEY
     );
 
-    return res.status(200).json({ ipnsName: ipnsName });
+    return res.status(200).json({ ipnsName: ipnsName, ipfsHash: ipfsHash });
   } catch (error) {
+    return res.status(400).json({ error: error });
+  }
+});
+
+app.get("/getIpnsRecord", async (req, res) => {
+  try {
+    const ipnsName = req.query.ipnsName;
+
+    const allKeys = await lighthouse.getAllKeys(process.env.LIGHTHOUSE_API_KEY);
+
+    for (let i = 0; i < allKeys.data.length; i++) {
+      const element = allKeys.data[i];
+
+      if (element.ipnsId === ipnsName) {
+        return res.status(200).json({
+          cid: element.cid,
+          ipnsId: element.ipnsId,
+          ipnsName: element.ipnsName,
+        });
+      }
+    }
+
+    return res.status(404).json({ error: "IPNS record not found" });
+  } catch (error) {
+    return res.status(400).json({ error: error });
+  }
+});
+
+app.get("/getFileContent", async (req, res) => {
+  try {
+    const ipnsName = req.query.ipnsName;
+    // read file content using fs
+    const data = fs.readFileSync(`python_scripts/${ipnsName}.py`, "utf8");
+    console.log(data);
+
+    return res.status(200).json({ content: data });
+  } catch (error) {
+    console.log(error);
     return res.status(400).json({ error: error });
   }
 });
